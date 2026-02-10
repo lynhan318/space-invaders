@@ -8,7 +8,7 @@ const Rectangle = struct {
     width: f32,
     height: f32,
 
-    pub fn interects(self: Rectangle, other: Rectangle) bool {
+    pub fn intersects(self: Rectangle, other: Rectangle) bool {
         return self.x < other.x + other.width 
         and self.x + self.width > other.x 
         and self.y < other.y + other.height 
@@ -215,6 +215,7 @@ pub fn main() void {
     const invaderDropDistance = 20;
     var invader_direction:f32 = 1.0;
     var move_timer:i32 = 0;
+    var score = 0;
 
     var bullets:[maxBullet]Bullet = undefined;
 
@@ -265,6 +266,25 @@ pub fn main() void {
         for(&bullets)|*bullet|{
             bullet.update();
         }
+        for(&bullets)|*bullet|{
+            if(bullet.active){
+                for(&invaders)|*row|{
+                    for(row)|invader|{
+                        if(invader.alive){
+                            if(invader.getRect().intersects(bullet.getRect())){
+                                invader.alive = false;
+                                bullet.active = false;
+                                score += 10;
+                                break;
+                            }
+                        }
+
+                    }
+                }
+            }
+
+        }
+
         move_timer += 1;
         if(move_timer >= invaderMoveDelay){
             move_timer = 0;
@@ -305,6 +325,8 @@ pub fn main() void {
             bullet.draw();
         }
         drawInvaders(&invaders);
-        rl.drawText("Space Invaders", 300, 250, 40, rl.Color.green);
+        const score_text = rl.textFormat("Store %d",.{score});
+        rl.drawText(score_text, 20, screenHeight-20, 20, rl.Color.white);
+        rl.drawText("Press SPACE to shoot, ESC to exit", 20, 50, 20, rl.Color.green);
     }
 }
