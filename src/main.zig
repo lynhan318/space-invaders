@@ -173,6 +173,25 @@ const Shield = struct {
     }
 };
 
+fn resetGame(player: *Player, score: *i32, invaders: anytype, bullets: []Bullet, enemyBullets: []EnemyBullet, config: GameConfig) void {
+    score.* = 0;
+    player.* = Player.init(@as(f32, @as(f32, @floatFromInt(config.screenWidth)) / 2.0) - config.playerWidth / 2.0, @as(f32, @floatFromInt(config.screenHeight)) - 60.0, config.playerWidth, config.playerHeight);
+    for (bullets) |*item| {
+        item.active = false;
+    }
+
+    for (enemyBullets) |*item| {
+        item.active = false;
+    }
+    for (invaders, 0..) |*row, i| {
+        for (row, 0..) |*invader, j| {
+            const x = config.invaderStartX + config.invaderSpacingX * @as(f32, @floatFromInt(j));
+            const y = config.invaderStartY + config.invaderSpacingY * @as(f32, @floatFromInt(i));
+            invader.* = Invader.init(x, y, config.invaderWidth, config.invaderHeight);
+        }
+    }
+}
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 600;
@@ -199,6 +218,27 @@ pub fn main() void {
     const delayEnemyBullet = 50;
     const enemyFireChance = 30;
     const maxShield = 4;
+
+    const gameConfig = GameConfig{
+        .screenWidth = screenWidth,
+        .screenHeight = screenHeight,
+        .playerWidth = playerWidth,
+        .playerHeight = playerHeight,
+        .playerStartY = @as(f32, @floatFromInt(screenHeight)) - 60.0,
+        .bulletWidth = bulletWidth,
+        .bulletHeight = bulletHeight,
+        .shieldStartX = 0.0,
+        .shieldY = @as(f32, @floatFromInt(screenHeight)) - 150.0,
+        .shieldWidth = 80.0,
+        .shieldHeight = 40.0,
+        .shieldSpacing = 150.0,
+        .invaderStartX = invaderStartX,
+        .invaderStartY = invaderStartY,
+        .invaderWidth = invaderWidth,
+        .invaderHeight = invaderHeight,
+        .invaderSpacingX = invaderSpacingX,
+        .invaderSpacingY = invaderSpacingY,
+    };
 
     var game_over: bool = false;
     var invader_direction: f32 = 1.0;
@@ -242,22 +282,8 @@ pub fn main() void {
                 break;
             }
             if (rl.isKeyPressed(rl.KeyboardKey.enter)) {
-                for (&invaders, 0..) |*row, i| {
-                    for (row, 0..) |*invader, j| {
-                        const x = invaderStartX + @as(i32, @intFromFloat(invaderSpacingX)) * j;
-                        const y = invaderStartY + @as(i32, @intFromFloat(invaderSpacingY)) * i;
-                        invader.* = Invader.init(@as(f32, @floatFromInt(x)), @as(f32, @floatFromInt(y)), @as(f32, @floatFromInt(invaderWidth)), @as(f32, @floatFromInt(invaderHeight)));
-                    }
-                }
-                for (&enemyBullets) |*enemy| {
-                    enemy.* = EnemyBullet.init(0.0, 0.0, bulletWidth, bulletHeight);
-                }
-                for (&bullets) |*bullet| {
-                    bullet.* = Bullet.init(0.0, 0.0, bulletWidth, bulletHeight);
-                }
-                player = Player.init(@as(f32, @floatFromInt(screenWidth / 2)) - playerWidth / 2, @as(f32, @floatFromInt(screenHeight)) - 60.0, playerWidth, playerHeight);
+                resetGame(&player, &score, &invaders, &bullets, &enemyBullets, gameConfig);
                 game_over = false;
-                score = 0;
             }
             continue;
         }
