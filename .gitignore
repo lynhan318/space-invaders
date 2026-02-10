@@ -1,0 +1,57 @@
+# Zig
+zig-cache/
+zig-out/
+build/
+build-*/
+coverage/
+*.o
+*.obj
+*.exe
+*.pdb
+*.ilk
+
+# Build artifacts
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Testing
+coverage/
+*.profraw
+
+# Dependencies (if using git submodules for deps)
+# Uncomment if needed:
+# vendor/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+*.old
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
