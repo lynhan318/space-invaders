@@ -89,6 +89,52 @@ const Player = struct {
     }
 };
 
+
+const Invader = struct {
+    positionX:f32,
+    positionY:f32,
+    width:f32,
+    height:f32,
+    speed:f32,
+    alive: bool,
+
+    pub fn init(positionX: f32, positionY: f32, width: f32, height: f32) @This() {
+        return .{
+            .positionX = positionX,
+            .positionY = positionY,
+            .width = width,
+            .height = height,
+            .speed = 2.0,
+            .alive = true
+        };
+    }
+    pub fn getRect(self: @This()) Rectangle {
+        return .{
+            .x = self.positionX,
+            .y = self.positionY,
+            .width = self.width,
+            .height = self.height
+        };
+    }
+    pub fn draw(self: @This())void{
+        if(self.alive){
+            rl.drawRectangle(
+                @as(i32,@intFromFloat(self.positionX)),
+                @as(i32,@intFromFloat(self.positionY)), 
+                @as(i32,@intFromFloat(self.width)), 
+                @as(i32,@intFromFloat(self.height)),
+                rl.Color.green
+            );
+        }
+    }
+
+    pub fn update(self: *@This(), dx:f32,dy:f32)void{
+        self.positionX += dx;
+        self.positionY += dy;
+        
+    }
+};
+
 const Bullet = struct {
     positionX:f32,
     positionY:f32,
@@ -96,6 +142,15 @@ const Bullet = struct {
     height:f32,
     speed:f32,
     active: bool,
+
+    pub fn getRect(self: @This()) Rectangle {
+        return .{
+            .x = self.positionX,
+            .y = self.positionY,
+            .width = self.width,
+            .height = self.height
+        };
+    }
 
     pub fn init(positionX: f32, positionY: f32, width: f32, height: f32) @This() {
         return .{
@@ -128,6 +183,14 @@ const Bullet = struct {
     }
 };
 
+fn drawInvaders(invaders: anytype)void{
+    for(invaders)|*row|{
+        for(row)|*bullet|{
+            bullet.draw();
+        }
+    }
+}
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 600;
@@ -139,11 +202,39 @@ pub fn main() void {
     const maxBullet = 10;
     const bulletWidth = 4.0;
     const bulletHeight = 10.0;
+    const invaderRows = 5;
+    const invaderCols = 11;
+    const invaderWidth= 40;
+    const invaderHeight = 30;
+    const invaderStartX = 100;
+    const invaderStartY = 50;
+    const invaderSpacingX = invaderWidth + 20;
+    const invaderSpacingY = invaderHeight + 10;
+    const invaderSpeed = 5.0;
+    const invaderMoveDelay = 30;
+    const invaderDropDistance = 20;
+    var invader_direction:f32 = 1.0;
+    var move_timer:i32 = 0;
 
     var bullets:[maxBullet]Bullet = undefined;
 
     for(&bullets)|*bullet|{
         bullet.* = Bullet.init(0.0, 0.0, bulletWidth, bulletHeight);
+    }
+    var invaders: [invaderRows][invaderCols]Invader = undefined;
+
+    for(&invaders,0..) |*row,i|{
+        for(row,0..)|*invader,j| {
+            const x = invaderStartX + @as(i32,@intFromFloat(invaderSpacingX)) * j;
+            const y = invaderStartY + @as(i32,@intFromFloat(invaderSpacingY)) * i;
+            invader.* = Invader.init(
+                @as(f32,@floatFromInt(x)),
+                @as(f32,@floatFromInt(y)),
+                @as(f32,@floatFromInt(invaderWidth)),
+                @as(f32,@floatFromInt(invaderHeight))
+            );
+            
+        }
     }
 
     var player = Player.init(
@@ -174,11 +265,46 @@ pub fn main() void {
         for(&bullets)|*bullet|{
             bullet.update();
         }
+        move_timer += 1;
+        if(move_timer >= invaderMoveDelay){
+            move_timer = 0;
+            //check edges
+            var hitEdge = false;
+            for(&invaders) |*row|{
+                for(row)|*invader| {
+                    if(invader.alive){
+                        const nextX = invader.positionX + invader_direction * invaderSpeed;
+                        if(nextX < 0  or nextX+invader.width > @as(f32,@floatFromInt(screenWidth))){
+                            hitEdge = true;
+                            break;
+                        }
+                    }
+                }
+                if(hitEdge) break; 
+            }
+            if(hitEdge){
+                invader_direction *= -1.0;
+                for(&invaders) |*row|{
+                    for(row)|*invader| {
+                        invader.update(0.0, invaderDropDistance);
+                    }
+                }
+            } else {
+                for(&invaders) |*row|{
+                    for(row)|*invader| {
+                        invader.update(invader_direction * invaderSpeed, 0.0);
+                    }
+                }
+            }
+        }
+
+
         //DRAW
         player.draw();
         for(&bullets)|*bullet|{
             bullet.draw();
         }
+        drawInvaders(&invaders);
         rl.drawText("Space Invaders", 300, 250, 40, rl.Color.green);
     }
 }
