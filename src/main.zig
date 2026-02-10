@@ -134,6 +134,45 @@ const EnemyBullet = struct {
     }
 };
 
+const Shield = struct {
+    positionX: f32,
+    positionY: f32,
+    width: f32,
+    height: f32,
+    health: i32,
+
+    pub fn init(positionX: f32, positionY: f32, width: f32, height: f32) @This() {
+        return .{ .positionX = positionX, .positionY = positionY, .width = width, .height = height, .health = 50 };
+    }
+    pub fn getRect(self: @This()) Rectangle {
+        return .{ .x = self.positionX, .y = self.positionY, .width = self.width, .height = self.height };
+    }
+    pub fn draw(self: @This()) void {
+        if (self.health > 0) {
+            const color = switch (self.health) {
+                30...50 => rl.Color.lime,
+                10...29 => rl.Color.orange,
+                else => rl.Color.red,
+            };
+            rl.drawRectangle(@as(i32, @intFromFloat(self.positionX)), @as(i32, @intFromFloat(self.positionY)), @as(i32, @intFromFloat(self.width)), @as(i32, @intFromFloat(self.height)), color);
+        }
+    }
+    pub fn create(comptime maxShield: usize) [maxShield]Shield {
+        var shields: [maxShield]Shield = undefined;
+        const shieldWidth = 80.0;
+        const shieldHeight = 40.0;
+        const shieldY = @as(f32, @floatFromInt(rl.getScreenHeight())) - 150.0;
+        const shieldSpacing = 150.0;
+        const startX = (@as(f32, @floatFromInt(rl.getScreenWidth())) - (shieldSpacing * @as(f32, @floatFromInt(maxShield - 1)) + shieldWidth * @as(f32, @floatFromInt(maxShield)))) / 2.0;
+
+        for (&shields, 0..) |*shield, i| {
+            const x = startX + (@as(f32, @floatFromInt(i)) * (shieldWidth + shieldSpacing));
+            shield.* = Shield.init(x, shieldY, shieldWidth, shieldHeight);
+        }
+        return shields;
+    }
+};
+
 pub fn main() void {
     const screenWidth = 800;
     const screenHeight = 600;
@@ -159,6 +198,7 @@ pub fn main() void {
     const maxEnemyBullets = 20;
     const delayEnemyBullet = 50;
     const enemyFireChance = 30;
+    const maxShield = 4;
 
     var game_over: bool = false;
     var invader_direction: f32 = 1.0;
@@ -167,7 +207,6 @@ pub fn main() void {
     var score: i32 = 0;
 
     var bullets: [maxBullet]Bullet = undefined;
-
     for (&bullets) |*bullet| {
         bullet.* = Bullet.init(0.0, 0.0, bulletWidth, bulletHeight);
     }
@@ -184,6 +223,8 @@ pub fn main() void {
     for (&enemyBullets) |*enemy| {
         enemy.* = EnemyBullet.init(0.0, 0.0, bulletWidth, bulletHeight);
     }
+
+    var shields: [maxShield]Shield = Shield.create(maxShield);
 
     var player = Player.init(@as(f32, @floatFromInt(screenWidth / 2)) - playerWidth / 2, @as(f32, @floatFromInt(screenHeight)) - 60.0, playerWidth, playerHeight);
 
@@ -293,6 +334,24 @@ pub fn main() void {
             }
         }
 
+        for (&shields) |*shield| {
+            for (&bullets) |*bullet| {
+                if (bullet.active and shield.health > 0) {
+                    if (shield.getRect().intersects(bullet.getRect())) {
+                        bullet.active = false;
+                    }
+                }
+            }
+            for (&enemyBullets) |*enemy| {
+                if (enemy.active and shield.health > 0) {
+                    if (shield.getRect().intersects(enemy.getRect())) {
+                        shield.health -= 10;
+                        enemy.active = false;
+                    }
+                }
+            }
+        }
+
         enemy_bullet_timer += 1;
         if (enemy_bullet_timer >= delayEnemyBullet) {
             enemy_bullet_timer = 0;
@@ -328,6 +387,11 @@ pub fn main() void {
         for (enemyBullets) |enemy| {
             enemy.draw();
         }
+
+        for (shields) |shield| {
+            shield.draw();
+        }
+
         const score_text = rl.textFormat("Store %d", .{score});
         rl.drawText(score_text, 20, screenHeight - 20, 20, rl.Color.white);
         rl.drawText("Press SPACE to shoot, ESC to quit", 10, 0, 20, rl.Color.green);
