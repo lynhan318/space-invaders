@@ -51,7 +51,7 @@ const Player = struct {
             .positionY = positionY,
             .width = width,
             .height = height,
-            .speed = 20.0
+            .speed = 10.0
         };
     }
 
@@ -103,9 +103,28 @@ const Bullet = struct {
             .positionY = positionY,
             .width = width,
             .height = height,
-            .speed = 10.0,
+            .speed = 7.0,
             .active = false
         };
+    }
+    pub fn update(self: *@This())void{
+        if(self.active){
+            self.positionY -= self.speed;
+            if(self.positionY + self.height < 0){
+                self.active = false;
+            }
+        }
+    }
+    pub fn draw(self: @This())void{
+        if(self.active){
+            rl.drawRectangle(
+                @as(i32,@intFromFloat(self.positionX)),
+                @as(i32,@intFromFloat(self.positionY)), 
+                @as(i32,@intFromFloat(self.width)), 
+                @as(i32,@intFromFloat(self.height)),
+                rl.Color.red
+            );
+        }
     }
 };
 
@@ -121,6 +140,12 @@ pub fn main() void {
     const bulletWidth = 4.0;
     const bulletHeight = 10.0;
 
+    var bullets:[maxBullet]Bullet = undefined;
+
+    for(&bullets)|*bullet|{
+        bullet.* = Bullet.init(0.0, 0.0, bulletWidth, bulletHeight);
+    }
+
     var player = Player.init(
         @as(f32,@floatFromInt(screenWidth / 2)) - playerWidth / 2,
         @as(f32,@floatFromInt(screenHeight)) - 60.0,
@@ -134,8 +159,26 @@ pub fn main() void {
         defer rl.endDrawing();
 
         rl.clearBackground(rl.Color.black);
+        //UPDATE
         player.update();
+        if(rl.isKeyPressed(rl.KeyboardKey.space)){
+            for(&bullets)|*bullet|{
+                if(!bullet.active){
+                    bullet.positionX = player.positionX + player.width / 2 - bullet.width / 2;
+                    bullet.positionY = player.positionY;
+                    bullet.active = true;
+                    break;
+                }
+            }
+        }
+        for(&bullets)|*bullet|{
+            bullet.update();
+        }
+        //DRAW
         player.draw();
+        for(&bullets)|*bullet|{
+            bullet.draw();
+        }
         rl.drawText("Space Invaders", 300, 250, 40, rl.Color.green);
     }
 }

@@ -55,3 +55,4 @@ Thumbs.db
 *.su
 *.idb
 *.pdb
+.zig-cache
